@@ -1,0 +1,18 @@
+{
+  "name": "SI-PETARUNG MALAKA",
+  "short_name": "SI-PETARUNG",
+  "description": "Sistem Informasi Penataan Ruang Kabupaten Malaka",
+  "theme_color": "#1d4ed8",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
