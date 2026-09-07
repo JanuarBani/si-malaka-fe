@@ -2,6 +2,7 @@ import L from "leaflet";
 import { dashboardApi } from "../../api/dashboardApi";
 import { kkprApi } from "../../api/kkprApi";
 import { showToast } from "../../components/layout/Toast";
+import { API_BASE_URL } from "../../utils/constants";
 
 export default function PimpinanDashboard(user) {
   return `
@@ -91,16 +92,16 @@ export function initPimpinanDashboard(user) {
       document.getElementById("pimpinan-stats").innerHTML = cards
         .map(
           (c) => `
-        <div class="bg-white rounded-lg shadow p-5">
-          <p class="text-sm text-gray-500">${c.title}</p>
-          <p class="text-2xl font-bold">${c.value}</p>
-        </div>
-      `,
+          <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-sm text-gray-500">${c.title}</p>
+            <p class="text-2xl font-bold">${c.value}</p>
+          </div>
+        `,
         )
         .join("");
 
       // Hitung KPI
-      const total = s.total_kkpr || 1; // hindari pembagian nol
+      const total = s.total_kkpr || 1;
       const persenSesuai = ((s.total_sesuai / total) * 100).toFixed(1);
       const persenTidakSesuai = ((s.total_tidak_sesuai / total) * 100).toFixed(
         1,
@@ -108,7 +109,6 @@ export function initPimpinanDashboard(user) {
       const persenTerpetakan = ((s.sudah_terpetakan / total) * 100).toFixed(1);
       const persenMenunggu = ((s.menunggu_verifikasi / total) * 100).toFixed(1);
 
-      // Render KPI
       const kpiContainer = document.getElementById("kpi-container");
       kpiContainer.innerHTML = `
         <div class="p-4 bg-gray-50 rounded-lg">
@@ -141,7 +141,6 @@ export function initPimpinanDashboard(user) {
         </div>
       `;
 
-      // Setelah menghitung persentase
       const lainnya =
         s.total_kkpr -
         (s.total_sesuai +
@@ -154,11 +153,10 @@ export function initPimpinanDashboard(user) {
         <p><span class="font-medium">Tidak Sesuai:</span> ${s.total_tidak_sesuai} KKPR (${persenTidakSesuai}%)</p>
         <p><span class="font-medium">Menunggu Verifikasi:</span> ${s.menunggu_verifikasi} KKPR (${persenMenunggu}%)</p>
         <p><span class="font-medium">Terpetakan:</span> ${s.sudah_terpetakan} KKPR (${persenTerpetakan}%)</p>
-        ${lainnya > 0 ? `<p><span class="font-medium">Lainnya (Draft, Dalam Verifikasi, dll):</span> ${lainnya} KKPR</p>` : ""}
+        ${lainnya > 0 ? `<p><span class="font-medium">Lainnya:</span> ${lainnya} KKPR</p>` : ""}
         <p><span class="font-medium">Total KKPR:</span> ${s.total_kkpr}</p>
       `;
 
-      // Inisialisasi peta persebaran
       initMap();
     } catch (error) {
       console.error(error);
@@ -176,8 +174,8 @@ export function initPimpinanDashboard(user) {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
 
-    // Muat layer KKPR GeoJSON
-    fetch("/api/kkpr/kkpr/geojson/", {
+    // Gunakan API_BASE_URL agar tidak relatif
+    fetch(`${API_BASE_URL}/kkpr/kkpr/geojson/`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("access_token")}`,
       },
