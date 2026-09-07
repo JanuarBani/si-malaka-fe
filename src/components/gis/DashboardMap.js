@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { API_BASE_URL } from "../../utils/constants";
 
 export function initDashboardMap(containerId, options = {}) {
   const mapElement = document.getElementById(containerId);
@@ -59,20 +60,20 @@ export function initDashboardMap(containerId, options = {}) {
 
       // Muat layer kecamatan terlebih dahulu agar berada di belakang marker
       if (options.showKecamatan) {
-        const kecRes = await fetch("/api/gis/kecamatan/geojson/", {
+        const kecRes = await fetch(`${API_BASE_URL}/gis/kecamatan/geojson/`, {
           headers: authHeaders,
         });
         if (kecRes.ok) {
           const kecGeoJSON = await kecRes.json();
           L.geoJSON(kecGeoJSON, {
             style: { color: "#3388ff", weight: 2, fillOpacity: 0.1 },
-            interactive: false, // penting: agar tidak menghalangi klik/hover marker
+            interactive: false,
           }).addTo(map);
         }
       }
 
       // Muat layer KKPR (marker) di atas layer kecamatan
-      const kkprRes = await fetch("/api/kkpr/kkpr/geojson/", {
+      const kkprRes = await fetch(`${API_BASE_URL}/kkpr/kkpr/geojson/`, {
         headers: authHeaders,
       });
       if (!kkprRes.ok) throw new Error("Gagal memuat GeoJSON KKPR");
@@ -98,14 +99,12 @@ export function initDashboardMap(containerId, options = {}) {
             `;
             layer.bindPopup(popupContent);
 
-            // Event hover
             layer.on("mouseover", () => {
               layer.openPopup();
             });
             layer.on("mouseout", () => {
               layer.closePopup();
             });
-            // Event klik (toggle)
             layer.on("click", () => {
               if (layer.isPopupOpen()) {
                 layer.closePopup();
@@ -117,13 +116,11 @@ export function initDashboardMap(containerId, options = {}) {
         },
       }).addTo(map);
 
-      // Simpan referensi marker
       const markers = [];
       kkprLayer.eachLayer((layer) => {
         if (layer instanceof L.Marker) markers.push(layer);
       });
 
-      // Buka popup pertama otomatis setelah peta siap
       if (markers.length > 0 && options.openFirstPopup !== false) {
         setTimeout(() => {
           markers[0].openPopup();
