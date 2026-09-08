@@ -101,7 +101,6 @@ export function initAdminDashboard(user) {
     if (!container) return;
     try {
       const activities = await dashboardApi.getAdminActivities();
-      console.log("Aktivitas:", activities);
       let html = "";
 
       // KKPR terbaru
