@@ -3,6 +3,7 @@ import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
 import { zonasiApi } from "../../api/zonasiApi";
 import { showToast } from "../../components/layout/Toast";
+import axiosInstance from "../../api/axios";
 
 export default function ZonasiList(user) {
   return `
@@ -100,6 +101,21 @@ export function initZonasiList(user) {
   let detailMap = null;
   let detailLayer = null;
 
+    async function loadDesaLayer(map) {
+      try {
+        const res = await axiosInstance.get("/gis/desa/geojson/");
+        L.geoJSON(res.data, {
+          style: { color: "#6c757d", weight: 1, fillOpacity: 0.02 },
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties || {};
+            layer.bindPopup(`<strong>Desa: ${p.nama || "-"}</strong>`);
+          },
+        }).addTo(map);
+      } catch (error) {
+        console.error("Gagal memuat layer desa:", error);
+      }
+    }
+
   // Inisialisasi peta di dalam modal tambah/edit
   function initMap() {
     const mapElement = document.getElementById("map-zonasi");
@@ -116,6 +132,9 @@ export function initZonasiList(user) {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
+
+    // Muat layer desa untuk referensi
+    loadDesaLayer(map);
 
     map.on(L.Draw.Event.CREATED, (event) => {
       if (drawnLayer) map.removeLayer(drawnLayer);

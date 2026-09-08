@@ -4,9 +4,13 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import { kkprApi } from "../../api/kkprApi";
 import { showToast } from "../../components/layout/Toast";
 import { dokumenApi } from "../../api/dokumenApi";
+import axiosInstance from '../../api/axios';
 
 export default function KKPRForm(user, id = null) {
   const isEdit = id !== null;
+  const isOperator = user.role === 'OPERATOR_GIS';
+  const disabledAttr = isOperator ? 'disabled' : '';
+
   return `
     <div class="space-y-6" id="kkpr-form-container">
       <h2 class="text-2xl font-bold text-gray-800">${isEdit ? "Edit KKPR" : "Tambah KKPR"}</h2>
@@ -17,15 +21,15 @@ export default function KKPRForm(user, id = null) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">ID Register</label>
-              <input type="text" name="id_register" required class="mt-1 block w-full border rounded-md px-3 py-2">
+              <input type="text" name="id_register" required ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">No KKPR</label>
-              <input type="text" name="no_kkpr" required class="mt-1 block w-full border rounded-md px-3 py-2">
+              <input type="text" name="no_kkpr" required ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">Tanggal Penerbit</label>
-              <input type="date" name="tanggal_penerbit" class="mt-1 block w-full border rounded-md px-3 py-2">
+              <input type="date" name="tanggal_penerbit" ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
             </div>
           </div>
         </div>
@@ -34,7 +38,7 @@ export default function KKPRForm(user, id = null) {
           <h3 class="text-lg font-semibold mb-4">B. Informasi Pemohon</h3>
           <div>
             <label class="block text-sm font-medium text-gray-700">Nama Pemohon</label>
-            <input type="text" name="pemohon" required class="mt-1 block w-full border rounded-md px-3 py-2">
+            <input type="text" name="pemohon" required ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
           </div>
         </div>
         <!-- C. Informasi Kegiatan -->
@@ -43,11 +47,11 @@ export default function KKPRForm(user, id = null) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-              <input type="text" name="nama_kegiatan" required class="mt-1 block w-full border rounded-md px-3 py-2">
+              <input type="text" name="nama_kegiatan" required ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">Jenis Kegiatan</label>
-              <input type="text" name="jenis_kegiatan" required class="mt-1 block w-full border rounded-md px-3 py-2">
+              <input type="text" name="jenis_kegiatan" required ${disabledAttr} class="mt-1 block w-full border rounded-md px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500">
             </div>
           </div>
         </div>
@@ -84,6 +88,7 @@ export default function KKPRForm(user, id = null) {
             </div>
           </div>
         </div>
+
         <!-- E. Luas & Zonasi -->
         <div class="bg-white p-6 rounded-lg shadow">
           <h3 class="text-lg font-semibold mb-4">E. Luas & Zonasi</h3>
@@ -100,7 +105,7 @@ export default function KKPRForm(user, id = null) {
             </div>
           </div>
         </div>
-        <!-- F. Spasial (Geometry) -->
+        <!-- F. Spasial (Geometry) - tetap aktif untuk semua -->
         <div class="bg-white p-6 rounded-lg shadow">
           <h3 class="text-lg font-semibold mb-4">F. Spasial (Geometry)</h3>
           <input type="hidden" name="geometry" id="geometry-input" value="">
@@ -119,7 +124,10 @@ export default function KKPRForm(user, id = null) {
             <p class="text-xs text-gray-500">Geometry yang digambar atau diupload akan disimpan otomatis.</p>
           </div>
         </div>
-        <!-- G. Dokumen -->
+        <!-- G. Dokumen - hanya tampil untuk Admin -->
+        ${
+          !isOperator
+            ? `
         <div class="bg-white p-6 rounded-lg shadow">
           <h3 class="text-lg font-semibold mb-4">G. Dokumen</h3>
           <div class="space-y-4">
@@ -133,6 +141,9 @@ export default function KKPRForm(user, id = null) {
             </div>
           </div>
         </div>
+        `
+            : ""
+        }
         <!-- Tombol -->
         <div class="flex justify-end space-x-3">
           <a href="/kkpr" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Batal</a>
@@ -152,6 +163,46 @@ export function initKKPRForm(user, id = null) {
   let drawnLayer = null;
   let currentGeometry = null;
 
+  // Tambahan untuk layer administrasi
+  let kecamatanLayer = null;
+  let desaLayer = null;
+  let kecamatanDataList = [];
+  let desaDataList = [];
+
+  // Fungsi memuat layer kecamatan dan desa
+  async function loadAdminLayers(map) {
+    try {
+      const kecResp = await axiosInstance.get("/gis/kecamatan/geojson/");
+      kecamatanLayer = L.geoJSON(kecResp.data, {
+        style: { color: "#3388ff", weight: 2, fillOpacity: 0.05 },
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+          layer.bindPopup(`<strong>Kecamatan: ${p.nama || "-"}</strong>`);
+        },
+      }).addTo(map);
+
+      const desaResp = await axiosInstance.get("/gis/desa/geojson/");
+      desaLayer = L.geoJSON(desaResp.data, {
+        style: { color: "#6c757d", weight: 1, fillOpacity: 0.02 },
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+          layer.bindPopup(`<strong>Desa: ${p.nama || "-"}</strong>`);
+        },
+      }).addTo(map);
+
+      // Simpan data fitur untuk referensi dropdown
+      kecamatanDataList = kecResp.data.features || [];
+      desaDataList = desaResp.data.features || [];
+
+      // Fit peta ke seluruh wilayah
+      const group = L.featureGroup([kecamatanLayer, desaLayer]);
+      const bounds = group.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds);
+    } catch (error) {
+      console.error("Gagal memuat layer administrasi:", error);
+    }
+  }
+
   function initMap() {
     const mapElement = container.querySelector("#map");
     if (!mapElement || mapElement._leaflet_id) return;
@@ -159,6 +210,9 @@ export function initKKPRForm(user, id = null) {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
+
+    // Panggil layer administrasi
+    loadAdminLayers(map);
 
     map.on("click", (e) => {
       const lat = e.latlng.lat.toFixed(6);
@@ -238,6 +292,7 @@ export function initKKPRForm(user, id = null) {
     }
   };
 
+  // Event change kecamatan
   container
     .querySelector("#select-kecamatan")
     .addEventListener("change", async (e) => {
@@ -245,6 +300,7 @@ export function initKKPRForm(user, id = null) {
       const desaSelect = container.querySelector("#select-desa");
       desaSelect.innerHTML = '<option value="">Pilih Desa</option>';
       if (!kecId) return;
+
       try {
         const desaData = await kkprApi.getDesa(kecId);
         const desaList = desaData.results || desaData;
@@ -254,8 +310,48 @@ export function initKKPRForm(user, id = null) {
           opt.textContent = desa.nama;
           desaSelect.appendChild(opt);
         });
+
+        // Fit peta ke kecamatan terpilih
+        if (kecamatanLayer && kecamatanDataList.length) {
+          const feature = kecamatanDataList.find(
+            (f) =>
+              f.properties?.id === parseInt(kecId) ||
+              f.properties?.kecamatan_id === parseInt(kecId),
+          );
+          if (feature) {
+            const layer = L.geoJSON(feature);
+            const bounds = layer.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds);
+          }
+        }
       } catch (error) {
         console.error("Gagal memuat desa", error);
+      }
+    });
+
+  // Event change desa (fitBounds ke desa terpilih dan buka popup)
+  container
+    .querySelector("#select-desa")
+    .addEventListener("change", async (e) => {
+      const desaId = e.target.value;
+      if (!desaId) return;
+
+      if (desaLayer) {
+        let targetLayer = null;
+        desaLayer.eachLayer((l) => {
+          if (
+            l.feature &&
+            l.feature.properties &&
+            l.feature.properties.id === parseInt(desaId)
+          ) {
+            targetLayer = l;
+          }
+        });
+
+        if (targetLayer) {
+          map.fitBounds(targetLayer.getBounds());
+          targetLayer.openPopup();
+        }
       }
     });
 
@@ -304,67 +400,63 @@ export function initKKPRForm(user, id = null) {
     .addEventListener("submit", async (e) => {
       e.preventDefault();
       const form = e.target;
+      const isOperator = user.role === "OPERATOR_GIS";
 
-      const data = {
-        id_register: form.id_register.value,
-        no_kkpr: form.no_kkpr.value,
-        nama_kegiatan: form.nama_kegiatan.value,
-        jenis_kegiatan: form.jenis_kegiatan.value,
-        tanggal_penerbit: form.tanggal_penerbit.value || null,
-        pemohon: form.pemohon.value,
-        kecamatan: form.kecamatan.value || null,
-        desa_kelurahan: form.desa_kelurahan.value || null,
-        luas: form.luas.value || null,
-        alamat_lokasi: form.alamat_lokasi.value || "",
-        latitude: form.latitude.value ? parseFloat(form.latitude.value) : null,
-        longitude: form.longitude.value
-          ? parseFloat(form.longitude.value)
-          : null,
-        zonasi: form.zonasi.value || null,
-        geometry: currentGeometry,
-      };
+      let data;
+      if (isOperator && isEdit) {
+        const existingData = await kkprApi.getDetail(id);
+        data = {
+          ...existingData,
+          geometry: currentGeometry,
+          latitude: form.latitude.value
+            ? parseFloat(form.latitude.value)
+            : existingData.latitude,
+          longitude: form.longitude.value
+            ? parseFloat(form.longitude.value)
+            : existingData.longitude,
+          alamat_lokasi: form.alamat_lokasi.value || existingData.alamat_lokasi,
+          kecamatan: form.kecamatan.value || existingData.kecamatan,
+          desa_kelurahan:
+            form.desa_kelurahan.value || existingData.desa_kelurahan,
+          luas: form.luas.value || existingData.luas,
+          zonasi: form.zonasi.value || existingData.zonasi,
+        };
+      } else {
+        data = {
+          id_register: form.id_register.value,
+          no_kkpr: form.no_kkpr.value,
+          nama_kegiatan: form.nama_kegiatan.value,
+          jenis_kegiatan: form.jenis_kegiatan.value,
+          tanggal_penerbit: form.tanggal_penerbit.value || null,
+          pemohon: form.pemohon.value,
+          kecamatan: form.kecamatan.value || null,
+          desa_kelurahan: form.desa_kelurahan.value || null,
+          luas: form.luas.value || null,
+          alamat_lokasi: form.alamat_lokasi.value || "",
+          latitude: form.latitude.value
+            ? parseFloat(form.latitude.value)
+            : null,
+          longitude: form.longitude.value
+            ? parseFloat(form.longitude.value)
+            : null,
+          zonasi: form.zonasi.value || null,
+          geometry: currentGeometry,
+        };
+      }
 
       try {
-        let kkprId;
         if (isEdit) {
           await kkprApi.update(id, data);
-          kkprId = id;
           showToast("Data KKPR berhasil diperbarui", "success");
         } else {
-          const created = await kkprApi.create(data);
-          kkprId = created.id;
+          await kkprApi.create(data);
           showToast("Data KKPR berhasil disimpan", "success");
         }
-
-        // Upload dokumen jika ada
-        const legalFile = form.dokumen_legalitas.files[0];
-        const spasialFile = form.dokumen_spasial.files[0];
-
-        if (legalFile) {
-          const fd = new FormData();
-          fd.append("kkpr", kkprId);
-          fd.append("nama_dokumen", legalFile.name);
-          fd.append("kategori", "LEGALITAS");
-          fd.append("file", legalFile);
-          await dokumenApi.create(fd);
-        }
-
-        if (spasialFile) {
-          const fd = new FormData();
-          fd.append("kkpr", kkprId);
-          fd.append("nama_dokumen", spasialFile.name);
-          fd.append("kategori", "SPASIAL");
-          fd.append("file", spasialFile);
-          await dokumenApi.create(fd);
-        }
-
         window.location.href = "/kkpr";
       } catch (error) {
         console.error(error);
         let message = "Gagal menyimpan data";
-        if (error.response?.data) {
-          message = JSON.stringify(error.response.data);
-        }
+        if (error.response?.data) message = JSON.stringify(error.response.data);
         showToast(message, "error");
       }
     });

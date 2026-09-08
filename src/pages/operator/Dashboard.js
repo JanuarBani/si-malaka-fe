@@ -50,8 +50,8 @@ export function initOperatorDashboard(user) {
           color: "bg-red-500",
         },
         {
-          title: "Perlu Perbaikan",
-          value: s.perlu_perbaikan,
+          title: "Bersyarat",
+          value: s.bersyarat,
           icon: "🔧",
           color: "bg-orange-500",
         },

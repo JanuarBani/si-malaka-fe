@@ -90,11 +90,16 @@ export function initDashboardMap(containerId, options = {}) {
             const p = feature.properties;
             const popupContent = `
               <div style="font-size: 12px; line-height: 1.5;">
-                <strong>${p.no_kkpr}</strong><br>
-                Kegiatan: ${p.nama_kegiatan}<br>
-                Pemohon: ${p.pemohon}<br>
+                <strong>Tipe: KKPR</strong><br>
+                No KKPR: ${p.no_kkpr || "-"}<br>
+                Nama Kegiatan: ${p.nama_kegiatan || "-"}<br>
+                Pemohon: ${p.pemohon || "-"}<br>
                 Kecamatan: ${p.kecamatan || "-"}<br>
-                Status: <span style="color: ${getColorByWorkflow(p.workflow)}; font-weight: bold;">${p.workflow}</span>
+                Desa: ${p.desa || "-"}<br>
+                Status: ${p.status || "-"}<br>
+                Workflow: <span style="color: ${getColorByWorkflow(p.workflow)}; font-weight: bold;">${p.workflow || "-"}</span><br>
+                Zonasi: ${p.zonasi || "-"}
+                ${p.id ? `<br><a href="/kkpr/${p.id}" target="_blank" style="color: #3b82f6;">Lihat Detail</a>` : ""}
               </div>
             `;
             layer.bindPopup(popupContent);

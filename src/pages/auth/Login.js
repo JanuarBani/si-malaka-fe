@@ -5,7 +5,7 @@ export default function Login() {
         <div class="bg-white rounded-lg shadow-lg p-8">
           <div class="text-center mb-8">
             <h1 class="text-2xl font-bold text-gray-800">SI-PETARUNG MALAKA</h1>
-            <p class="text-gray-600 text-sm">Sistem Informasi Penataan Ruang Kabupaten Malaka</p>
+            <p class="text-gray-600 text-sm">SISTEM INFORMASI PEMANFAATAN RUANG KABUPATEN MALAKA</p>
           </div>
           <form id="login-form" class="space-y-4">
             <div>
@@ -40,6 +40,11 @@ export default function Login() {
               </button>
             </div>
           </form>
+          <div class="mt-6 text-center">
+            <a href="/" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+              &larr; Kembali ke Beranda
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ import PimpinanDashboard, {
 } from "../pages/pimpinan/Dashboard";
 import KKPRList, { initKKPRList } from "../pages/kkpr/List";
 import KKPRForm, { initKKPRForm } from "../pages/kkpr/Form";
-import KKPRDetail, { initKKPRDetail } from '../pages/kkpr/Detail';
+import KKPRDetail, { initKKPRDetail } from "../pages/kkpr/Detail";
 import MapPage, { initMap } from "../pages/gis/MapPage";
 import VerificationList, {
   initVerificationList,
@@ -21,7 +21,7 @@ import VerificationForm, {
   initVerificationForm,
 } from "../pages/gis/VerificationForm";
 import MappingPage, { initMappingPage } from "../pages/gis/MappingPage";
-import LayerList, { initLayerList } from '../pages/gis/LayerList';
+import LayerList, { initLayerList } from "../pages/gis/LayerList";
 import Statistics, { initStatistics } from "../pages/reports/Statistics";
 import Reports, { initReports } from "../pages/reports/Reports";
 import UserList, { initUserList } from "../pages/users/UserList";
@@ -29,9 +29,10 @@ import UserForm, { initUserForm } from "../pages/users/UserForm";
 import DocumentsList, {
   initDocumentsList,
 } from "../pages/documents/DocumentsList";
-import ZonasiList, { initZonasiList } from '../pages/gis/ZonasiList';
+import ZonasiList, { initZonasiList } from "../pages/gis/ZonasiList";
 import KecamatanList, { initKecamatanList } from "../pages/gis/KecamatanList";
 import DesaList, { initDesaList } from "../pages/gis/DesaList";
+import Home from "../pages/Home";
 
 const router = new Navigo("/");
 const render = (html) => {
@@ -60,6 +61,17 @@ const ROLE_PATHS = {
   OPERATOR_GIS: "/operator/dashboard",
   PIMPINAN: "/pimpinan/dashboard",
 };
+
+router.on("/", () => {
+  if (AuthService.isAuthenticated()) {
+    const user = AuthService.getUser();
+    if (user) {
+      router.navigate(ROLE_PATHS[user.role]);
+      return;
+    }
+  }
+  render(Home());
+});
 
 router.on("/login", () => {
   if (AuthService.isAuthenticated()) {
@@ -133,6 +145,7 @@ router.on(
   }),
 );
 
+// KKPR routes
 router.on(
   "/kkpr",
   authGuard((user) => {
@@ -141,10 +154,11 @@ router.on(
   }),
 );
 
+// Tambah KKPR hanya untuk Admin
 router.on(
   "/kkpr/tambah",
   authGuard((user) => {
-    if (user.role !== "ADMIN" && user.role !== "OPERATOR_GIS") {
+    if (user.role !== "ADMIN") {
       router.navigate(ROLE_PATHS[user.role]);
       return;
     }
@@ -155,6 +169,7 @@ router.on(
   }),
 );
 
+// Edit KKPR untuk Admin dan Operator GIS
 router.on(
   "/kkpr/edit/:id",
   authGuard((user) => {
@@ -168,17 +183,23 @@ router.on(
   }),
 );
 
-router.on('/kkpr/:id', authGuard((user) => {
-  const id = window.location.pathname.split('/').pop();
-  if (!id) {
-    router.navigate('/kkpr');
-    return;
-  }
-  render(Layout({ user, content: KKPRDetail(user, id), activeMenu: '/kkpr' }));
-  requestAnimationFrame(() => initKKPRDetail(user, id));
-}));
+// Detail KKPR (semua role terautentikasi)
+router.on(
+  "/kkpr/:id",
+  authGuard((user) => {
+    const id = window.location.pathname.split("/").pop();
+    if (!id) {
+      router.navigate("/kkpr");
+      return;
+    }
+    render(
+      Layout({ user, content: KKPRDetail(user, id), activeMenu: "/kkpr" }),
+    );
+    requestAnimationFrame(() => initKKPRDetail(user, id));
+  }),
+);
 
-
+// Peta Interaktif
 router.on(
   "/map",
   authGuard((user) => {
@@ -193,6 +214,7 @@ router.on(
   }),
 );
 
+// Verifikasi Spasial
 router.on(
   "/gis/verification",
   authGuard((user) => {
@@ -235,6 +257,7 @@ router.on(
   }),
 );
 
+// Pemetaan GIS (khusus Operator)
 router.on(
   "/gis/mapping",
   authGuard((user) => {
@@ -249,6 +272,7 @@ router.on(
   }),
 );
 
+// Layer GIS
 router.on(
   "/gis/layers",
   authGuard((user) => {
@@ -263,6 +287,7 @@ router.on(
   }),
 );
 
+// Statistik
 router.on(
   "/statistik",
   authGuard((user) => {
@@ -273,6 +298,7 @@ router.on(
   }),
 );
 
+// Laporan
 router.on(
   "/laporan",
   authGuard((user) => {
@@ -281,7 +307,7 @@ router.on(
   }),
 );
 
-
+// Manajemen User (Admin)
 router.on(
   "/users",
   authGuard((user) => {
@@ -324,6 +350,7 @@ router.on(
   }),
 );
 
+// Dokumen
 router.on(
   "/dokumen",
   authGuard((user) => {
@@ -334,6 +361,7 @@ router.on(
   }),
 );
 
+// Zonasi (Admin only)
 router.on(
   "/zonasi",
   authGuard((user) => {
@@ -346,6 +374,7 @@ router.on(
   }),
 );
 
+// Kecamatan (Admin only)
 router.on(
   "/kecamatan",
   authGuard((user) => {
@@ -360,6 +389,7 @@ router.on(
   }),
 );
 
+// Desa (Admin only)
 router.on(
   "/desa",
   authGuard((user) => {
@@ -372,8 +402,7 @@ router.on(
   }),
 );
 
-
-// Placeholder routes lainnya
+// Placeholder hanya untuk route yang belum diimplementasikan
 const placeholderPage = (title) => {
   return `<div class="text-center py-20"><h2 class="text-2xl font-bold text-gray-700">${title}</h2><p class="text-gray-500">Fitur ini akan segera hadir.</p></div>`;
 };
@@ -387,20 +416,8 @@ const registerPlaceholderRoute = (path, title) => {
     }),
   );
 };
-[
-  "/dokumen",
-  "/arsip",
-  "/map",
-  "/monitoring",
-  "/statistik",
-  "/laporan",
-  "/users",
-  "/gis/verification",
-  "/gis/mapping",
-  "/gis/layers",
-  "/rdtr",
-  "/zonasi",
-].forEach((path) => {
+
+["/arsip", "/monitoring", "/rdtr"].forEach((path) => {
   const title = path.charAt(1).toUpperCase() + path.slice(2).replace(/-/g, " ");
   registerPlaceholderRoute(path, title);
 });

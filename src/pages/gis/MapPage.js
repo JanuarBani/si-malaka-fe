@@ -20,14 +20,7 @@ export default function MapPage(user) {
           </select>
         </div>
       </div>
-      <div class="relative">
-        <div id="map" class="w-full h-[calc(100vh-12rem)] rounded-lg shadow-lg"></div>
-        <!-- Panel Layer Kustom -->
-        <div class="absolute top-2 right-2 z-[1000] bg-white p-2 rounded shadow max-h-80 overflow-auto w-48">
-          <h4 class="font-semibold text-sm mb-2">Layers</h4>
-          <div id="custom-layer-control" class="space-y-1"></div>
-        </div>
-      </div>
+      <div id="map" class="w-full h-[calc(100vh-12rem)] rounded-lg shadow-lg"></div>
     </div>
   `;
 }
@@ -42,7 +35,7 @@ export function initMap(container) {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
 
-  // Fungsi warna berdasarkan workflow (dipindahkan ke scope initMap)
+  // Warna berdasarkan workflow
   const getColorByWorkflow = (workflow) => {
     const colors = {
       SESUAI: "#10b981",
@@ -56,35 +49,33 @@ export function initMap(container) {
     return colors[workflow] || "#007bff";
   };
 
-  // Fungsi untuk menambahkan popup dan event hover/klik
-  const addPopupAndHover = (layer, content) => {
-    layer.bindPopup(content);
-    layer.on("mouseover", () => layer.openPopup());
-    layer.on("mouseout", () => layer.closePopup());
-    layer.on("click", () => {
-      if (layer.isPopupOpen()) layer.closePopup();
-      else layer.openPopup();
-    });
-  };
-
   // Objek layer dasar
   const layers = {
     kecamatan: L.geoJSON(null, {
       style: { color: "#3388ff", weight: 2, fillOpacity: 0.1 },
-      interactive: true,
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
-        const content = `<strong>${p.nama || "Kecamatan"}</strong><br>Kode: ${p.kode || "-"}`;
-        addPopupAndHover(layer, content);
+        layer.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.5;">
+          <strong style="color: #3388ff;">Tipe: Kecamatan</strong><br>
+          Nama: ${p.nama || "-"}<br>
+          Kode: ${p.kode || "-"}
+        </div>
+      `);
       },
     }),
     desa: L.geoJSON(null, {
       style: { color: "#6c757d", weight: 1, fillOpacity: 0.05 },
-      interactive: true,
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
-        const content = `<strong>${p.nama || "Desa"}</strong><br>Kode: ${p.kode || "-"}<br>Kecamatan ID: ${p.kecamatan_id || "-"}`;
-        addPopupAndHover(layer, content);
+        layer.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.5;">
+          <strong style="color: #6c757d;">Tipe: Desa/Kelurahan</strong><br>
+          Nama: ${p.nama || "-"}<br>
+          Kode: ${p.kode || "-"}<br>
+          Kecamatan ID: ${p.kecamatan_id || "-"}
+        </div>
+      `);
       },
     }),
     zonasi: L.geoJSON(null, {
@@ -93,20 +84,30 @@ export function initMap(container) {
         weight: 2,
         fillOpacity: 0.2,
       }),
-      interactive: true,
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
-        const content = `<strong>${p.nama_zonasi || "Zonasi"}</strong><br>Kode: ${p.kode_zonasi || "-"}<br>${p.deskripsi || ""}`;
-        addPopupAndHover(layer, content);
+        layer.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.5;">
+          <strong style="color: ${p.warna || "#3388ff"};">Tipe: Zonasi</strong><br>
+          Nama: ${p.nama_zonasi || "-"}<br>
+          Kode: ${p.kode_zonasi || "-"}<br>
+          Deskripsi: ${p.deskripsi || "-"}
+        </div>
+      `);
       },
     }),
     rdtr: L.geoJSON(null, {
       style: { color: "#dc3545", weight: 2, fillOpacity: 0.1 },
-      interactive: true,
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
-        const content = `<strong>${p.nama || "RDTR"}</strong><br>Kode: ${p.kode || "-"}<br>Status: ${p.status || "-"}`;
-        addPopupAndHover(layer, content);
+        layer.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.5;">
+          <strong style="color: #dc3545;">Tipe: RDTR</strong><br>
+          Nama: ${p.nama || "-"}<br>
+          Kode: ${p.kode || "-"}<br>
+          Status: ${p.status || "-"}
+        </div>
+      `);
       },
     }),
     pemetaan: L.geoJSON(null, {
@@ -114,11 +115,16 @@ export function initMap(container) {
         color: feature.properties.warna || "#ff8800",
         weight: 3,
       }),
-      interactive: true,
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
-        const content = `<strong>${p.nama_layer || "Pemetaan"}</strong><br>${p.keterangan || ""}<br>Jenis: ${p.geometry_type || "-"}`;
-        addPopupAndHover(layer, content);
+        layer.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.5;">
+          <strong style="color: ${p.warna || "#ff8800"};">Tipe: Pemetaan</strong><br>
+          Nama Layer: ${p.nama_layer || "-"}<br>
+          Keterangan: ${p.keterangan || "-"}<br>
+          Jenis Geometry: ${p.geometry_type || "-"}
+        </div>
+      `);
       },
     }),
     kkpr: L.geoJSON(null, {
@@ -128,55 +134,56 @@ export function initMap(container) {
         const icon = L.divIcon({
           className: "kkpr-marker",
           html: `
-            <div style="
-              background-color: ${bgColor};
-              color: white;
-              border-radius: 50%;
-              width: 28px;
-              height: 28px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 9px;
-              font-weight: bold;
-              box-shadow: 0 0 6px rgba(0,0,0,0.5);
-              border: 2px solid white;
-              cursor: pointer;
-            ">
-              ${p.no_kkpr.split(" ").pop() || "KKPR"}
-            </div>
-          `,
+          <div style="
+            background-color: ${bgColor};
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            box-shadow: 0 0 6px rgba(0,0,0,0.5);
+            border: 2px solid white;
+            cursor: pointer;
+          ">
+            ${p.no_kkpr.split(" ").pop() || "KKPR"}
+          </div>
+        `,
           iconSize: [28, 28],
           iconAnchor: [14, 14],
           popupAnchor: [0, -18],
         });
-        return L.marker(latlng, { icon, interactive: true });
+        return L.marker(latlng, { icon, zIndexOffset: 1000 });
       },
       onEachFeature: (feature, layer) => {
         if (feature.properties) {
           const p = feature.properties;
           const popupContent = `
-            <div style="font-size: 12px; line-height: 1.5;">
-              <strong>${p.no_kkpr}</strong><br>
-              Kegiatan: ${p.nama_kegiatan}<br>
-              Pemohon: ${p.pemohon}<br>
-              Kecamatan: ${p.kecamatan || "-"}<br>
-              Desa: ${p.desa || "-"}<br>
-              Status: ${p.status}<br>
-              Workflow: <span style="color: ${getColorByWorkflow(p.workflow)}; font-weight: bold;">${p.workflow}</span><br>
-              Zonasi: ${p.zonasi || "-"}
-            </div>
-          `;
-          addPopupAndHover(layer, popupContent);
+          <div style="font-size: 12px; line-height: 1.5;">
+            <strong style="color: ${getColorByWorkflow(p.workflow)};">Tipe: KKPR</strong><br>
+            No KKPR: ${p.no_kkpr}<br>
+            Nama Kegiatan: ${p.nama_kegiatan}<br>
+            Pemohon: ${p.pemohon}<br>
+            Kecamatan: ${p.kecamatan || "-"}<br>
+            Desa: ${p.desa || "-"}<br>
+            Status: ${p.status}<br>
+            Workflow: ${p.workflow}<br>
+            Zonasi: ${p.zonasi || "-"}
+          </div>
+        `;
+          layer.bindPopup(popupContent);
         }
       },
     }),
   };
 
-  // Tambahkan layer dasar ke peta
+  // Tambahkan layer dasar
   Object.values(layers).forEach((layer) => layer.addTo(map));
 
-  // Fungsi memuat GeoJSON dari URL
+  // Muat data GeoJSON
   const loadGeoJSON = async (url, layerGroup) => {
     try {
       const response = await axiosInstance.get(url);
@@ -187,7 +194,6 @@ export function initMap(container) {
     }
   };
 
-  // Muat data GeoJSON dasar
   loadGeoJSON("/gis/kecamatan/geojson/", layers.kecamatan);
   loadGeoJSON("/gis/desa/geojson/", layers.desa);
   loadGeoJSON("/gis/zonasi/geojson/", layers.zonasi);
@@ -215,6 +221,7 @@ export function initMap(container) {
 
   L.control.scale().addTo(map);
 
+  // Geolocation
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((pos) => {
       map.setView([pos.coords.latitude, pos.coords.longitude], 13);
@@ -225,6 +232,7 @@ export function initMap(container) {
     });
   }
 
+  // Isi dropdown kecamatan
   const loadKecamatanOptions = async () => {
     try {
       const resp = await axiosInstance.get("/gis/kecamatan/");
@@ -244,6 +252,7 @@ export function initMap(container) {
   };
   loadKecamatanOptions();
 
+  // Filter KKPR
   const filterKecamatanSelect = container.querySelector("#filter-kecamatan");
   const filterStatusSelect = container.querySelector("#filter-status");
   const applyFilters = () => {
@@ -261,41 +270,11 @@ export function initMap(container) {
   filterKecamatanSelect.addEventListener("change", applyFilters);
   filterStatusSelect.addEventListener("change", applyFilters);
 
-  const customControlContainer = container.querySelector(
-    "#custom-layer-control",
-  );
-
-  const addLayerToCustomPanel = (mapInstance, layer, nama) => {
-    if (!customControlContainer) return;
-    const label = document.createElement("label");
-    label.className = "flex items-center space-x-2 text-sm";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = true;
-    checkbox.addEventListener("change", (e) => {
-      if (e.target.checked) layer.addTo(mapInstance);
-      else mapInstance.removeLayer(layer);
-    });
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(nama));
-    customControlContainer.appendChild(label);
-  };
-
-  addLayerToCustomPanel(map, layers.kecamatan, "Kecamatan");
-  addLayerToCustomPanel(map, layers.desa, "Desa");
-  addLayerToCustomPanel(map, layers.zonasi, "Zonasi");
-  addLayerToCustomPanel(map, layers.rdtr, "RDTR");
-  addLayerToCustomPanel(map, layers.pemetaan, "Pemetaan");
-  addLayerToCustomPanel(map, layers.kkpr, "KKPR");
-
-  loadActiveLayerGIS(map, addLayerToCustomPanel, addPopupAndHover);
+  // Muat layer GIS aktif
+  loadActiveLayerGIS(map);
 }
 
-async function loadActiveLayerGIS(
-  map,
-  addLayerToCustomPanel,
-  addPopupAndHover,
-) {
+async function loadActiveLayerGIS(map) {
   try {
     const resp = await axiosInstance.get("/gis/layers/", {
       params: { aktif: true },
@@ -311,16 +290,13 @@ async function loadActiveLayerGIS(
               opacity: layerData.opacity || 1.0,
               fillOpacity: (layerData.opacity || 1.0) * 0.5,
             },
-            onEachFeature: (feature, layer) => {
-              addPopupAndHover(
-                layer,
-                `<strong>${layerData.nama_layer}</strong>`,
-              );
+            onEachFeature: (feature, l) => {
+              l.bindPopup(`<strong>${layerData.nama_layer}</strong>`);
             },
           }).addTo(map);
-          if (window.layerControl)
+          if (window.layerControl) {
             window.layerControl.addOverlay(layer, layerData.nama_layer);
-          addLayerToCustomPanel(map, layer, layerData.nama_layer);
+          }
         } catch (geomError) {
           console.error(
             `Gagal memuat geometry layer ${layerData.nama_layer}:`,
@@ -343,19 +319,19 @@ async function loadActiveLayerGIS(
               opacity: layerData.opacity || 1.0,
               fillOpacity: (layerData.opacity || 1.0) * 0.5,
             },
-            onEachFeature: (feature, layer) => {
+            onEachFeature: (feature, l) => {
               const props = feature.properties || {};
               const content =
                 `<strong>${layerData.nama_layer}</strong><br>` +
                 Object.entries(props)
                   .map(([k, v]) => `${k}: ${v}`)
                   .join("<br>");
-              addPopupAndHover(layer, content);
+              l.bindPopup(content);
             },
           }).addTo(map);
-          if (window.layerControl)
+          if (window.layerControl) {
             window.layerControl.addOverlay(layer, layerData.nama_layer);
-          addLayerToCustomPanel(map, layer, layerData.nama_layer);
+          }
         } catch (fileError) {
           console.error(
             `Gagal memuat file GeoJSON layer ${layerData.nama_layer}:`,

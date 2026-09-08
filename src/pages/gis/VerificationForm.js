@@ -48,7 +48,7 @@ export function initVerificationForm(user, id) {
                   <option value="">Pilih Status</option>
                   <option value="SESUAI">Sesuai</option>
                   <option value="TIDAK_SESUAI">Tidak Sesuai</option>
-                  <option value="PERLU_PERBAIKAN">Perlu Perbaikan</option>
+                  <option value="BERSYARAT">Bersyarat</option>
                 </select>
               </div>
               <div>

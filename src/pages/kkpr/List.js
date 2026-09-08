@@ -7,7 +7,7 @@ export default function KKPRList(user) {
     <div class="space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-2xl font-bold text-gray-800">Data KKPR</h2>
-        ${role === "ADMIN" || role === "OPERATOR_GIS" ? '<a href="/kkpr/tambah" class="mt-2 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md">+ Tambah KKPR</a>' : ""}
+        ${role === "ADMIN" ? '<a href="/kkpr/tambah" class="mt-2 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md">+ Tambah KKPR</a>' : ""}
       </div>
       <div class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row gap-4">
         <input id="search-input" type="text" placeholder="Cari No KKPR, Nama Kegiatan, Pemohon..." class="flex-1 border rounded-md px-3 py-2">
@@ -19,7 +19,7 @@ export default function KKPRList(user) {
           <option value="SESUAI">Sesuai</option>
           <option value="TIDAK_SESUAI">Tidak Sesuai</option>
           <option value="TERPETAKAN">Terpetakan</option>
-          <option value="PERLU_PERBAIKAN">Perlu Perbaikan</option>
+          <option value="BERSYARAT">Bersyarat</option>
           <option value="SELESAI">Selesai</option>
         </select>
         <select id="filter-status" class="border rounded-md px-3 py-2">
@@ -106,6 +106,7 @@ export function initKKPRList(user) {
       SELESAI: "bg-purple-100 text-purple-800",
       DRAFT: "bg-gray-100 text-gray-800",
       DALAM_VERIFIKASI: "bg-indigo-100 text-indigo-800",
+      BERSYARAT: "bg-orange-100 text-orange-800",
     };
     const badgeClass =
       workflowBadge[item.workflow] || "bg-gray-100 text-gray-800";

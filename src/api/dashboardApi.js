@@ -61,8 +61,7 @@ export const dashboardApi = {
       sesuai: kkprList.filter((k) => k.workflow === "SESUAI").length,
       tidak_sesuai: kkprList.filter((k) => k.workflow === "TIDAK_SESUAI")
         .length,
-      perlu_perbaikan: kkprList.filter((k) => k.workflow === "PERLU_PERBAIKAN")
-        .length,
+      bersyarat: kkprList.filter((k) => k.workflow === "BERSYARAT").length,
       total_pemetaan: pemetaanList.length,
       total_layer_gis: layerList.length,
     };
