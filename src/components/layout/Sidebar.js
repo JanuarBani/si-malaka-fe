@@ -20,7 +20,7 @@ export default function Sidebar(user, activeMenu = "") {
       { label: "Data KKPR", path: "/kkpr", icon: "📁" },
       { label: "Verifikasi Spasial", path: "/gis/verification", icon: "✅" },
       // { label: "Pemetaan GIS", path: "/gis/mapping", icon: "🗺️" },
-      { label: "Layer GIS", path: "/gis/layers", icon: "📚" },
+      // { label: "Layer GIS", path: "/gis/layers", icon: "📚" },
       { label: "Peta", path: "/map", icon: "🗺️" },
       { label: "Statistik", path: "/statistik", icon: "📉" },
       { label: "Laporan", path: "/laporan", icon: "📑" },

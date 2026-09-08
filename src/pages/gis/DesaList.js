@@ -28,6 +28,15 @@ export default function DesaList(user) {
         </table>
       </div>
 
+      <!-- Pagination -->
+      <div class="flex items-center justify-between">
+        <span id="pagination-info" class="text-sm text-gray-600"></span>
+        <div class="space-x-2">
+          <button id="btn-prev" class="px-3 py-1 border rounded disabled:opacity-50" disabled>Prev</button>
+          <button id="btn-next" class="px-3 py-1 border rounded disabled:opacity-50" disabled>Next</button>
+        </div>
+      </div>
+
       <!-- Modal Tambah/Edit -->
       <div id="modal-desa" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-10 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white">
@@ -96,6 +105,12 @@ export function initDesaList(user) {
   let detailMap = null;
   let detailLayer = null;
 
+  // Pagination state
+  let currentPage = 1;
+  let totalCount = 0;
+  let nextPage = null;
+  let prevPage = null;
+
   async function loadKecamatanOptions() {
     const select = document.getElementById("select-kecamatan");
     if (!select) return;
@@ -118,6 +133,7 @@ export function initDesaList(user) {
     const mapElement = document.getElementById("map-desa");
     if (!mapElement) return;
     if (mapElement._leaflet_id) {
+      // Jika peta sudah ada, bersihkan layer gambar sebelumnya
       if (drawnLayer) {
         map.removeLayer(drawnLayer);
         drawnLayer = null;
@@ -189,36 +205,50 @@ export function initDesaList(user) {
     });
   }
 
-  async function loadData() {
+  async function loadData(page = currentPage) {
     const tbody = document.getElementById("desa-tbody");
     if (!tbody) return;
     tbody.innerHTML =
       '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>';
     try {
-      const data = await desaApi.getList({ page_size: 100 });
-      const results = data.results || data;
+      const data = await desaApi.getList({ page: page });
+      totalCount = data.count;
+      nextPage = data.next;
+      prevPage = data.previous;
+      const results = data.results || [];
+
       if (results.length === 0) {
         tbody.innerHTML =
           '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Belum ada desa.</td></tr>';
-        return;
+      } else {
+        tbody.innerHTML = results
+          .map(
+            (d) => `
+          <tr>
+            <td class="px-4 py-3 text-sm">${d.kode}</td>
+            <td class="px-4 py-3 text-sm">${d.nama}</td>
+            <td class="px-4 py-3 text-sm">${d.kecamatan_nama || "-"}</td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap">
+              <button data-id="${d.id}" class="text-blue-600 hover:underline btn-detail">Detail</button>
+              <button data-id="${d.id}" class="ml-2 text-green-600 hover:underline btn-edit">Edit</button>
+              <button data-id="${d.id}" class="ml-2 text-red-600 hover:underline btn-delete">Hapus</button>
+            </td>
+          </tr>
+        `,
+          )
+          .join("");
       }
-      tbody.innerHTML = results
-        .map(
-          (d) => `
-        <tr>
-          <td class="px-4 py-3 text-sm">${d.kode}</td>
-          <td class="px-4 py-3 text-sm">${d.nama}</td>
-          <td class="px-4 py-3 text-sm">${d.kecamatan_nama || "-"}</td>
-          <td class="px-4 py-3 text-sm whitespace-nowrap">
-            <button data-id="${d.id}" class="text-blue-600 hover:underline btn-detail">Detail</button>
-            <button data-id="${d.id}" class="ml-2 text-green-600 hover:underline btn-edit">Edit</button>
-            <button data-id="${d.id}" class="ml-2 text-red-600 hover:underline btn-delete">Hapus</button>
-          </td>
-        </tr>
-      `,
-        )
-        .join("");
 
+      // Update pagination info
+      const pageSize = 20; // Sesuaikan dengan PAGE_SIZE backend jika berbeda
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(start + results.length - 1, totalCount);
+      document.getElementById("pagination-info").textContent =
+        `Menampilkan ${start}-${end} dari ${totalCount}`;
+      document.getElementById("btn-prev").disabled = !prevPage;
+      document.getElementById("btn-next").disabled = !nextPage;
+
+      // Attach event pada tombol aksi
       tbody.querySelectorAll(".btn-detail").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           const id = e.target.getAttribute("data-id");
@@ -242,7 +272,7 @@ export function initDesaList(user) {
             try {
               await desaApi.delete(id);
               showToast("Desa dihapus", "success");
-              loadData();
+              loadData(currentPage); // reload halaman saat ini
             } catch (error) {
               showToast("Gagal menghapus desa", "error");
             }
@@ -356,6 +386,7 @@ export function initDesaList(user) {
     }
   }
 
+  // Event listeners untuk modal detail
   document.getElementById("btn-close-detail")?.addEventListener("click", () => {
     document.getElementById("modal-detail")?.classList.add("hidden");
   });
@@ -363,6 +394,7 @@ export function initDesaList(user) {
     document.getElementById("modal-detail")?.classList.add("hidden");
   });
 
+  // Event listeners untuk modal tambah/edit
   document.getElementById("btn-add-desa")?.addEventListener("click", openModal);
   document
     .getElementById("btn-close-modal")
@@ -371,6 +403,7 @@ export function initDesaList(user) {
     .getElementById("btn-cancel-desa")
     ?.addEventListener("click", closeModal);
 
+  // Event listener untuk submit form
   document
     .getElementById("desa-form")
     ?.addEventListener("submit", async (e) => {
@@ -391,7 +424,7 @@ export function initDesaList(user) {
           showToast("Desa ditambahkan", "success");
         }
         closeModal();
-        loadData();
+        loadData(currentPage); // reload halaman saat ini setelah aksi
       } catch (error) {
         console.error(error);
         let message = "Gagal menyimpan desa";
@@ -400,5 +433,21 @@ export function initDesaList(user) {
       }
     });
 
+  // Event listeners untuk pagination
+  document.getElementById("btn-prev")?.addEventListener("click", () => {
+    if (prevPage) {
+      currentPage--;
+      loadData(currentPage);
+    }
+  });
+
+  document.getElementById("btn-next")?.addEventListener("click", () => {
+    if (nextPage) {
+      currentPage++;
+      loadData(currentPage);
+    }
+  });
+
+  // Muat data awal
   loadData();
 }
